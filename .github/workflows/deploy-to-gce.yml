@@ -1,0 +1,63 @@
+# more details this workflow and other at https://github.com/didier-durand/gcloud-tests
+name: Deploy to GCE
+
+on:  
+
+  push:
+    #protection to avoid triggering when other workflow is modified
+    paths: 
+    - '!.github/workflows/**'
+    - '.github/workflows/deploy-instance-to-gce.yml'
+    
+  schedule:
+    - cron:  '0 2 * * *' 
+
+env:
+  GCP_ZONE: us-central1-c
+  GCP_VERBOSITY: warning
+  GCE_INSTANCE: test-gce-instance
+
+jobs:
+  deploy-to-GCE:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+        
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup gcloud CLI
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@0.1.3
+      with:
+        project_id: ${{ secrets.GCP_PROJECT }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Get gcloud version & info
+      run: |-
+        echo '--- gcloud version ---'
+        gcloud version
+        echo '--- gcloud info ---'
+        gcloud info --anonymize
+        
+    - name: List existing instances on Google Compute Engine (GCE) & clean-up if needed
+      run: |-
+        gcloud compute instances list
+        gcloud compute instances stop $GCE_INSTANCE --zone $GCP_ZONE --quiet || true
+        gcloud compute instances delete $GCE_INSTANCE --zone $GCP_ZONE --quiet || true
+          
+    - name: Start instance on Google Compute Engine (GCE)
+      run: |-
+        gcloud config set compute/zone $GCP_ZONE
+        gcloud compute instances create $GCE_INSTANCE --zone $GCP_ZONE --quiet 
+        gcloud compute instances start $GCE_INSTANCE --zone $GCP_ZONE --quiet
+        
+    - name: Describe started instance on Google Compute Engine (GCE)
+      run: |-
+        gcloud compute instances describe $GCE_INSTANCE --zone $GCP_ZONE
+        grep 'status: RUNNING' <<< $(gcloud compute instances describe $GCE_INSTANCE --zone $GCP_ZONE)
+              
+    - name: Stop & delete instance on Google Compute Engine (GCE)
+      run: |-
+        gcloud compute instances stop $GCE_INSTANCE --zone $GCP_ZONE --quiet 
+        gcloud compute instances delete $GCE_INSTANCE --zone $GCP_ZONE --quiet 

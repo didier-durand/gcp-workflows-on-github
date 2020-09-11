@@ -1,0 +1,60 @@
+# more details this workflow and other at https://github.com/didier-durand/gcloud-tests
+name: List IAM roles
+
+on: 
+ 
+  push:
+    #protection to avoid triggering when other workflow is modified
+    paths: 
+    - '!.github/workflows/**'
+    - '.github/workflows/gcloud-iam.yml'
+    
+  schedule:
+    - cron:  '0 3 * * *' 
+
+env:
+  GCP_VERBOSITY: warning
+  GCP_SA: gcp-showcase-sa@${{ secrets.GCP_PROJECT }}.iam.gserviceaccount.com
+
+jobs:
+  list-roles-with-Google-IAM:
+  
+    runs-on: ubuntu-latest 
+
+    steps:
+        
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup gcloud CLI
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@0.1.3
+      with:
+        project_id: ${{ secrets.GCP_PROJECT }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Get gcloud version & info
+      run: |-
+        echo '--- gcloud version ---'
+        gcloud version
+        echo '--- gcloud info ---'
+        gcloud info --anonymize
+        
+    - name: List IAM roles
+      run: |-
+        gcloud iam roles list --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: List IAM service accounts
+      run: |-
+        gcloud iam service-accounts list --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: Describe IAM service account
+      run: |-
+        gcloud iam service-accounts describe $GCP_SA --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: Describe IAM policy for service account
+      run: |-
+        gcloud iam service-accounts get-iam-policy $GCP_SA --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: List IAM keys for service account
+      run: |-
+        gcloud iam service-accounts keys list --iam-account=$GCP_SA --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet

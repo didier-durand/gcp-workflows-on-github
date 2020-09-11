@@ -1,0 +1,65 @@
+# more details this workflow and other at https://github.com/didier-durand/gcloud-tests
+name: List project services
+
+on: 
+ 
+  push:
+    #protection to avoid triggering when other workflow is modified
+    paths: 
+    - '!.github/workflows/**'
+    - '.github/workflows/gcloud-services.yml'
+    
+  schedule:
+    - cron:  '30 3 * * MON' 
+
+env:
+  GCP_VERBOSITY: warning
+  GCP_REGION: us-central1
+  
+jobs:
+  list-project-services:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+        
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup gcloud CLI
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@0.1.3
+      with:
+        project_id: ${{ secrets.GCP_PROJECT }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Get gcloud version & info
+      run: |-
+        echo '--- gcloud version ---'
+        gcloud version
+        echo '--- gcloud info ---'
+        gcloud info --anonymize
+        
+    - name: Get project quotas (global & per region)
+      run: |-
+        echo "global quotas:"
+        gcloud compute project-info describe --project ${{ secrets.GCP_PROJECT }}
+        echo -e "\n\nquotas for region $GCP_REGION:"
+        gcloud compute regions describe $GCP_REGION --project ${{ secrets.GCP_PROJECT }}
+        
+    - name: List specific services enabled in the project
+      run: |-
+        gcloud services list --enabled --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: List all services available to the project
+      run: |-
+        gcloud services list --available --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: Enable an additional service for the project
+      run: |-
+        # few chances to use 'zync.googleapis.com' in this test project ;-)
+        gcloud services enable 'zync.googleapis.com'  --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: Disable an additional service for the project
+      run: |-
+        # few chances to use 'zync.googleapis.com' in this test project ;-)
+        gcloud services disable 'zync.googleapis.com'  --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet

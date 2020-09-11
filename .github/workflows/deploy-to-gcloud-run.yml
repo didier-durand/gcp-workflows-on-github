@@ -1,0 +1,82 @@
+# more details this workflow and other at https://github.com/didier-durand/gcloud-tests
+name: Deploy image on Cloud Run
+
+on: 
+ 
+  push:
+    #protection to avoid triggering when other workflow is modified
+    paths: 
+    - '!.github/workflows/**'
+    - '.github/workflows/deploy-to-gcloud-run.yml'
+    
+  schedule:
+    - cron:  '30 1 * * *' 
+
+env:
+  GCP_VERBOSITY: warning
+  GCP_REGION: us-central1
+  GCR_IMAGE: tutum-hello-world
+  GCR_SERVICE: tutum-hello-world
+  CONTAINER_PORT: 80
+
+jobs:
+  deploy-to-Google-Cloud-Run:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+        
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup gcloud CLI
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@0.1.3
+      with:
+        project_id: ${{ secrets.GCP_PROJECT }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Get gcloud version & info
+      run: |-
+        echo '--- gcloud version ---'
+        gcloud version
+        echo '--- gcloud info ---'
+        gcloud info --anonymize
+        
+    - name: Build and tag tutum/hello-world Docker image for Google Cloud Registry on Github
+      run: |-
+        docker build . --file Dockerfile.gcrun -t "gcr.io/${{ secrets.GCP_PROJECT }}/$GCR_IMAGE:$GITHUB_SHA"
+        
+    - name: Configure Docker to use the gcloud command-line tool as a credential helper for authentication
+      run: |-
+        gcloud --quiet auth configure-docker
+        
+    - name: Push docker image to Google Container Registry
+      run: |-
+        docker push "gcr.io/${{ secrets.GCP_PROJECT }}/$GCR_IMAGE:$GITHUB_SHA"
+            
+    - name: Deploy image to Google Cloud Run
+      run: |-
+        gcloud run deploy "$GCR_SERVICE" --image="gcr.io/${{ secrets.GCP_PROJECT }}/$GCR_IMAGE:$GITHUB_SHA" --port=$CONTAINER_PORT --region=$GCP_REGION --platform=managed --allow-unauthenticated --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: Describe Google Cloud Run service
+      run: |-
+        gcloud run services describe "$GCR_SERVICE" --platform=managed --region=$GCP_REGION --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: Test deployed service
+      run: |-
+        export SERVICE_URL=$(gcloud run services describe "$GCR_SERVICE" --platform=managed --region=$GCP_REGION --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet \
+                                    | grep 'Traffic:' \
+                                    | awk '{print $2}')
+        echo "SERVICE_URL: $SERVICE_URL"
+        export CURL_RESULT=$(curl $SERVICE_URL)
+        echo "*** curl result: $CURL_RESULT"
+        grep -q "Hello world!" <<< $CURL_RESULT
+        
+    - name: Delete Google Cloud Run service
+      run: |-
+        gcloud run services delete "$GCR_SERVICE" --platform=managed --region=$GCP_REGION --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: Delete pushed GCR image
+      run: |-
+        # --force-delete-tags will delete all other versions of this image (when they exist)
+        gcloud container images delete "gcr.io/${{ secrets.GCP_PROJECT }}/$GCR_IMAGE:$GITHUB_SHA" --force-delete-tags --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet

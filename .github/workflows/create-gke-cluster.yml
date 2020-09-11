@@ -1,0 +1,95 @@
+# more details this workflow and other at https://github.com/didier-durand/gcloud-tests
+name: Create GKE cluster
+
+on:  
+
+  push:
+    #protection to avoid triggering when other workflow is modified
+    paths: 
+    - '!.github/workflows/**'
+    - '.github/workflows/create-gke-cluster.yml'
+    
+  schedule:
+    - cron:  '0 1 * * *' 
+
+env:
+  GCP_ZONE: us-central1-c
+  GCP_VERBOSITY: warning
+  GKE_CLUSTER: test-gke-cluster
+  GKE_SERVICE: tutum-hello-world
+
+jobs:
+  create-delete-GKE-cluster:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+        
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup gcloud CLI
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@0.1.3
+      with:
+        project_id: ${{ secrets.GCP_PROJECT }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Get gcloud version & info
+      run: |-
+        echo '--- gcloud version ---'
+        gcloud version
+        echo '--- gcloud info ---'
+        gcloud info --anonymize
+
+    - name: Clean up
+      run: |-
+        gcloud container clusters list --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }}
+        gcloud container clusters delete $GKE_CLUSTER --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --zone=$GCP_ZONE --quiet || true
+        
+    - name: Create GKE cluster
+      run: |-
+        gcloud container clusters create $GKE_CLUSTER --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --zone $GCP_ZONE --quiet --num-nodes=3
+    
+    - name: Get the GKE credentials to deploy to the cluster
+      run: |-
+        gcloud container clusters get-credentials $GKE_CLUSTER --zone $GCP_ZONE
+        
+    - name: Deploy tutum/hello-world to GKE cluster
+      run: |-
+        # grant auths for access (|| true to avoid failure when repeated)
+        echo "create cluster role binding for anonymous:"
+        kubectl create clusterrolebinding anonymous-cluster-admin-binding --clusterrole=cluster-admin --user=system:anonymous || true
+
+        # deploy on cluster
+        echo "apply $GKE_SERVICE.yaml: "
+        kubectl delete -f "kubernetes/$GKE_SERVICE.yaml" || true
+        kubectl apply -f "kubernetes/$GKE_SERVICE.yaml"
+
+        # get service DNS name
+        kubectl get svc "$GKE_SERVICE"
+
+        #wait until public IP address gets published
+        while [[ $(TERM=dumb kubectl get svc "$GKE_SERVICE" | grep "$GKE_SERVICE" -m 1 | awk '{ print $4 }') == *'<pending>'* ]]
+        do
+          echo "sleep 5s to get dns"
+          sleep 5s
+        done
+        export GKE_SERVICE_DNS=$(TERM=dumb kubectl get svc "$GKE_SERVICE" | grep "$GKE_SERVICE" -m 1 | awk '{ print $4 }') 
+        echo "gke service dns: |$GKE_SERVICE_DNS|"
+        while [[ $(nslookup "$GKE_SERVICE_DNS") == *'NXDOMAIN'* ]]
+        do
+          echo "sleep 5s for nslookup |$GKE_SERVICE_DNS|"
+          sleep 5s
+        done
+
+        # service can be called (http)
+        export HTTP_CURL=$(curl --insecure "http://$GKE_SERVICE_DNS")
+        echo "http curl: $HTTP_CURL"
+        echo "$HTTP_CURL" | grep "$GKE_SERVICE"
+        echo "service $GKE_SERVICE sucessfully tested!"
+            
+    - name: Delete GKE cluster
+      run: |-
+        gcloud container clusters list --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }}
+        gcloud container clusters delete $GKE_CLUSTER --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --zone=$GCP_ZONE --quiet
+        

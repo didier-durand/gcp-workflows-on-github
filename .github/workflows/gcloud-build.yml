@@ -1,0 +1,58 @@
+# more details this workflow and other at https://github.com/didier-durand/gcloud-tests
+name: Cloud Build for Docker image
+
+on:  
+
+  push:
+    #protection to avoid triggering when other workflow is modified
+    paths: 
+    - '!.github/workflows/**'
+    - '.github/workflows/gcloud-build.yml'
+    
+  schedule:
+    - cron:  '30 2 * * *' 
+
+env:
+  GCP_VERBOSITY: warning
+  GCR_IMAGE: test-alpine
+  GCB_DIR: cloud-build-dir
+
+jobs:
+  build-on-Google-Cloud-Build:
+  
+    runs-on: ubuntu-latest 
+
+    steps:
+        
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup gcloud CLI
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@0.1.3
+      with:
+        project_id: ${{ secrets.GCP_PROJECT }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Get gcloud version & info
+      run: |-
+        echo '--- gcloud version ---'
+        gcloud version
+        echo '--- gcloud info ---'
+        gcloud info --anonymize
+        
+    - name: Build image 
+      run: |-
+        gcloud builds submit $GCB_DIR --tag="gcr.io/${{ secrets.GCP_PROJECT }}/$GCR_IMAGE:$GITHUB_SHA" --timeout=5m --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: List builds
+      run: |-
+        gcloud builds list --limit=3 --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        
+    - name: Describe last build
+      run: |-
+        #just obtain the build id in text format
+        export BUILD_ID=$(gcloud builds list --limit=1 --format="value(id)" --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet)
+        gcloud builds describe $BUILD_ID --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet
+        grep "$BUILD_ID" <<< $(gcloud builds describe $BUILD_ID --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --quiet)
+        
+        

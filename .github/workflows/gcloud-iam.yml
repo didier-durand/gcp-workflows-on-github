@@ -2,6 +2,9 @@
 name: List IAM roles
 
 on: 
+  
+  workflow_dispatch:
+    inputs:
  
   push:
     #protection to avoid triggering when other workflow is modified

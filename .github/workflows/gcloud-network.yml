@@ -1,7 +1,10 @@
 # more details this workflow and other at https://github.com/didier-durand/gcloud-tests
 name: Create VPC peering
 
-on: 
+on:
+
+  workflow_dispatch:
+    inputs:
  
   push:
     #protection to avoid triggering when other workflow is modified

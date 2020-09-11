@@ -1,7 +1,10 @@
 # more details this workflow and other at https://github.com/didier-durand/gcloud-tests
 name: Use GCP logging
 
-on: 
+on:
+
+  workflow_dispatch:
+    inputs: 
  
   push:
     #protection to avoid triggering when other workflow is modified
@@ -55,7 +58,7 @@ jobs:
       # sleep 10s to give enough time for log message to be centralized in aggregate logging.
       run: |-
         sleep 10s
-        gcloud logging read --verbosity=$GCP_VERBOSITY --limit=10 --project=${{ secrets.GCP_PROJECT }} --quiet
+        gcloud logging read --verbosity=$GCP_VERBOSITY --limit=1000 --project=${{ secrets.GCP_PROJECT }} --quiet
         grep "textPayload:.*Github.*$GITHUB_SHA" <<< $(gcloud logging read --verbosity=$GCP_VERBOSITY --limit=10 --project=${{ secrets.GCP_PROJECT }} --quiet)
         
     - name: Delete test log

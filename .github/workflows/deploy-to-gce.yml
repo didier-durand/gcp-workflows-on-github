@@ -1,16 +1,19 @@
 # more details this workflow and other at https://github.com/didier-durand/gcloud-tests
 name: Deploy to GCE
 
-on:  
+on:
+  
+  workflow_dispatch:
+    inputs: 
 
   push:
     #protection to avoid triggering when other workflow is modified
     paths: 
     - '!.github/workflows/**'
-    - '.github/workflows/deploy-instance-to-gce.yml'
+    - '.github/workflows/deploy-to-gce.yml'
     
   schedule:
-    - cron:  '0 2 * * *' 
+    - cron:  '0 2 * * MON' 
 
 env:
   GCP_ZONE: us-central1-c

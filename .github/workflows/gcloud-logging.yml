@@ -59,7 +59,7 @@ jobs:
       run: |-
         sleep 10s
         gcloud logging read --verbosity=$GCP_VERBOSITY --limit=1000 --project=${{ secrets.GCP_PROJECT }} --quiet
-        grep "textPayload:.*Github.*$GITHUB_SHA" <<< $(gcloud logging read --verbosity=$GCP_VERBOSITY --limit=10 --project=${{ secrets.GCP_PROJECT }} --quiet)
+        grep "textPayload:.*Github.*$GITHUB_SHA" <<< $(gcloud logging read --verbosity=$GCP_VERBOSITY --limit=1000 --project=${{ secrets.GCP_PROJECT }} --quiet)
         
     - name: Delete test log
       run: |-

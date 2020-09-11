@@ -58,8 +58,8 @@ jobs:
       # sleep 10s to give enough time for log message to be centralized in aggregate logging.
       run: |-
         sleep 10s
-        gcloud logging read --verbosity=$GCP_VERBOSITY --limit=1000 --project=${{ secrets.GCP_PROJECT }} --quiet
-        grep "textPayload:.*Github.*$GITHUB_SHA" <<< $(gcloud logging read --verbosity=$GCP_VERBOSITY --limit=1000 --project=${{ secrets.GCP_PROJECT }} --quiet)
+        gcloud logging read --verbosity=$GCP_VERBOSITY --limit=1000 --order=desc --project=${{ secrets.GCP_PROJECT }} --quiet
+        grep "textPayload:.*Github.*$GITHUB_SHA" <<< $(gcloud logging read --order=desc --verbosity=$GCP_VERBOSITY --limit=1000 --project=${{ secrets.GCP_PROJECT }} --quiet)
         
     - name: Delete test log
       run: |-

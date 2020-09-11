@@ -10,7 +10,7 @@ on:
     - '.github/workflows/gcloud-services.yml'
     
   schedule:
-    - cron:  '30 3 * * MON' 
+    - cron:  '30 3 * * *' 
 
 env:
   GCP_VERBOSITY: warning

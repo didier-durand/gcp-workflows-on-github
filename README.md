@@ -13,6 +13,8 @@
 ![workflow badge](https://github.com/didier-durand/gcp-workflows-on-github/workflows/Deploy%20to%20GCE/badge.svg)
 ![workflow badge](https://github.com/didier-durand/gcp-workflows-on-github/workflows/Create%20VPC%20peering/badge.svg)
 
+[If you are more interested in similar scripts for Amazon Web Services, see our other project with [workflows for AWS](https://github.com/didier-durand/aws-workflows-on-github)]
+
 This repository contains [Github Workflows](https://github.com/features/actions) executing usual scripts for implementation of applications 
 on Google Cloud Platform (GCP). They are fully based on CLI commands of the [gcloud SDK](https://cloud.google.com/sdk/install) to allow 
 complete automation. To be executable on Github CI/CD environnement, they need to be located in [/.github directory](https://github.com/didier-durand/gcp-workflows-on-github/tree/master/.github/workflows).

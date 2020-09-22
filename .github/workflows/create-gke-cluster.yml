@@ -81,7 +81,7 @@ jobs:
         echo "gke service dns: |$GKE_SERVICE_DNS|"
         while [[ $(nslookup "$GKE_SERVICE_DNS") == *'NXDOMAIN'* ]]
         do
-          echo "sleep 5s for nslookup |$GKE_SERVICE_DNS|"
+          echo "sleep 5s for nslookup: |$GKE_SERVICE_DNS|"
           sleep 5s
         done
 

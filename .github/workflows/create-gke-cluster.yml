@@ -71,10 +71,10 @@ jobs:
         # get service DNS name
         kubectl get svc "$GKE_SERVICE"
 
-        #wait until public IP address gets published
+        #wait until public IP address gets published on Internet
         while [[ $(TERM=dumb kubectl get svc "$GKE_SERVICE" | grep "$GKE_SERVICE" -m 1 | awk '{ print $4 }') == *'<pending>'* ]]
         do
-          echo "sleep 5s to get dns"
+          echo "sleep 5s to get dns: $GKE_SERVICE"
           sleep 5s
         done
         export GKE_SERVICE_DNS=$(TERM=dumb kubectl get svc "$GKE_SERVICE" | grep "$GKE_SERVICE" -m 1 | awk '{ print $4 }') 
@@ -85,7 +85,7 @@ jobs:
           sleep 5s
         done
 
-        # service can be called (http)
+        # service can now be called (http)
         export HTTP_CURL=$(curl --insecure "http://$GKE_SERVICE_DNS")
         echo "http curl: $HTTP_CURL"
         echo "$HTTP_CURL" | grep "$GKE_SERVICE"

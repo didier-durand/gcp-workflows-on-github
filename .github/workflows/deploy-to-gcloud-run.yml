@@ -13,7 +13,7 @@ on:
     - '.github/workflows/deploy-to-gcloud-run.yml'
     
   schedule:
-    - cron:  '30 1 * * *' 
+    - cron:  '30 1 * * MON' 
 
 env:
   GCP_VERBOSITY: warning

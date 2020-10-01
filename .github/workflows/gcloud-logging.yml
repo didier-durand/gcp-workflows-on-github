@@ -13,7 +13,7 @@ on:
     - '.github/workflows/gcloud-logging.yml'
     
   schedule:
-    - cron:  '0 4 * * *' 
+    - cron:  '0 4 * * MON' 
 
 env:
   GCP_VERBOSITY: warning

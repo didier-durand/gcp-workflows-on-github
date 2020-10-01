@@ -13,7 +13,7 @@ on:
     - '.github/workflows/create-gke-cluster.yml'
     
   schedule:
-    - cron:  '0 1 * * *' 
+    - cron:  '0 1 * * MON' 
 
 env:
   GCP_ZONE: us-central1-c

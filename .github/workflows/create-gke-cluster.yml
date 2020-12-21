@@ -93,6 +93,7 @@ jobs:
         echo "service $GKE_SERVICE sucessfully tested!"
             
     - name: Delete GKE cluster
+      if: ${{ always() }}
       run: |-
         gcloud container clusters list --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }}
         gcloud container clusters delete $GKE_CLUSTER --verbosity=$GCP_VERBOSITY --project=${{ secrets.GCP_PROJECT }} --zone=$GCP_ZONE --quiet

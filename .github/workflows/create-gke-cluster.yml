@@ -77,6 +77,7 @@ jobs:
           echo "sleep 5s to get dns: $GKE_SERVICE"
           sleep 5s
         done
+        sleep 5s
         export GKE_SERVICE_DNS=$(TERM=dumb kubectl get svc "$GKE_SERVICE" | grep "$GKE_SERVICE" -m 1 | awk '{ print $4 }') 
         echo "gke service dns: |$GKE_SERVICE_DNS|"
         while [[ $(nslookup "$GKE_SERVICE_DNS") == *'NXDOMAIN'* ]]
